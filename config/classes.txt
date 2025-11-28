@@ -1,3 +1,0 @@
-0 White Blood Cell (WBC)
-1 Red Blood Cell (RBC)
-2 Platelet

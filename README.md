@@ -10,17 +10,26 @@ pip install -e .
 
 ```bash
 # Full pipeline (train -> export -> compare)
-./scripts/run_experiment.sh
+./scripts/run_experiment.sh TXL
+./scripts/run_experiment.sh Cellpose
 
 # Individual steps
-./scripts/run_experiment.sh train
-./scripts/run_experiment.sh export
-./scripts/run_experiment.sh compare
+./scripts/run_experiment.sh TXL train
+./scripts/run_experiment.sh TXL export
+./scripts/run_experiment.sh TXL compare
 ```
 
 ## Configuration
 
-Edit `config/experiment.yaml` to customize training parameters.
+Each dataset has its own config in `config/datasets/`:
+
+```
+config/datasets/
+├── TXL.yaml
+└── Cellpose.yaml
+```
+
+Edit these files to customize training parameters (epochs, batch sizes, prune ratios, etc.).
 
 ## Adding a Dataset
 
@@ -32,8 +41,21 @@ Edit `config/experiment.yaml` to customize training parameters.
    └── data.yaml
    ```
 
-2. Update `config/experiment.yaml`:
+2. Create `config/datasets/<DATASET_NAME>.yaml` (see `config/datasets/TXL.yaml` for example):
    ```yaml
    dataset: <DATASET_NAME>
    data: data/<DATASET_NAME>/data.yaml
+
+   model: yolo11n.pt
+   epochs_pre: 100
+   epochs_post: 50
+   batch_sizes: [4, 8]
+   prune_ratios: [20, 50]
+   device: "0"
+   ```
+
+3. Run experiments:
+   ```bash
+   ./scripts/run_experiment.sh <DATASET_NAME>
+   ./scripts/run_experiment.sh <DATASET_NAME> train    # training only
    ```
