@@ -1,0 +1,29 @@
+# Data
+data/
+
+# Model weights
+*.pt
+*.onnx
+
+# Training runs
+runs/
+
+# Python
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Logs
+logs/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

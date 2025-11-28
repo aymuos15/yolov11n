@@ -1,0 +1,20 @@
+# Experiment Configuration
+# This file defines the experiments to run
+
+# Dataset settings
+dataset: TXL                    # Dataset name (must match folder in data/)
+data: data/TXL/data.yaml        # Path to data.yaml
+
+# Model
+model: yolo11n.pt               # Base model to finetune
+
+# Training parameters
+epochs_pre: 1                # Epochs for baseline finetuning
+epochs_post: 1                 # Epochs for post-prune finetuning
+
+# Experiment grid
+batch_sizes: [4, 8]             # Batch sizes to test
+prune_ratios: [20, 50]          # Pruning percentages to test
+
+# Hardware
+device: "0"                     # GPU device (0, 1, "cpu", etc.)
