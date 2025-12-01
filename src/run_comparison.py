@@ -17,6 +17,37 @@ import numpy as np
 import torch
 from ultralytics import YOLO
 
+# Model utilities (inline for now)
+VALID_SIZES = {"n", "s", "m", "l", "x"}
+VALID_FAMILIES = {"yolo11"}
+
+
+def extract_model_info(model_path: str | Path):
+    """Extract model family and size from model path."""
+    model_path = Path(model_path)
+    stem = model_path.stem  # e.g., "yolo11n"
+
+    # Try to match pattern like "yolo11n", "yolo11s", etc.
+    for family in VALID_FAMILIES:
+        if stem.startswith(family):
+            size = stem[len(family) :]
+            if size in VALID_SIZES:
+                return family, size
+
+    # Default fallback
+    return "yolo11", "n"
+
+
+def extract_model_size(model_path: str | Path) -> str:
+    """Extract model size from model path."""
+    return extract_model_info(model_path)[1]
+
+
+def extract_model_family(model_path: str | Path) -> str:
+    """Extract model family from model path."""
+    return extract_model_info(model_path)[0]
+
+
 PROJECT_ROOT = Path(__file__).parent.parent
 
 
@@ -69,7 +100,14 @@ def get_model_stats(model_path: Path, imgsz: int = 640) -> tuple[float, float]:
     def hook_conv(m, inp, out):
         if isinstance(out, torch.Tensor):
             b, c_out, h, w = out.shape
-            flops[0] += m.kernel_size[0] * m.kernel_size[1] * (m.in_channels / m.groups) * c_out * h * w
+            flops[0] += (
+                m.kernel_size[0]
+                * m.kernel_size[1]
+                * (m.in_channels / m.groups)
+                * c_out
+                * h
+                * w
+            )
 
     hooks = []
     for m in model.modules():
@@ -85,7 +123,9 @@ def get_model_stats(model_path: Path, imgsz: int = 640) -> tuple[float, float]:
     return params_m, flops[0] / 1e9
 
 
-def benchmark_pytorch(model_path: Path, imgsz: int, batch: int, iters: int, device: str) -> float:
+def benchmark_pytorch(
+    model_path: Path, imgsz: int, batch: int, iters: int, device: str
+) -> float:
     """Returns avg ms per batch."""
     model = YOLO(str(model_path)).model.to(device).eval()
     inp = torch.randn(batch, 3, imgsz, imgsz, device=device)
@@ -115,7 +155,9 @@ def benchmark_onnx(model_path: Path, imgsz: int, batch: int, iters: int) -> floa
     # Look for pre-exported ONNX file
     onnx_path = model_path.with_suffix(".onnx")
     if not onnx_path.exists():
-        print(f"    [WARN] ONNX not found: {onnx_path.name}, run 'python -m src.run_export' first")
+        print(
+            f"    [WARN] ONNX not found: {onnx_path.name}, run 'python -m src.run_export' first"
+        )
         return float("nan")
 
     providers = []
@@ -138,13 +180,19 @@ def benchmark_onnx(model_path: Path, imgsz: int, batch: int, iters: int) -> floa
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Compare all models and generate results")
-    parser.add_argument("--dataset", type=str, required=True, help="Dataset name (e.g., TXL)")
+    parser = argparse.ArgumentParser(
+        description="Compare all models and generate results"
+    )
+    parser.add_argument(
+        "--dataset", type=str, required=True, help="Dataset name (e.g., TXL)"
+    )
     parser.add_argument("--runs-dir", type=Path, default=PROJECT_ROOT / "runs")
     parser.add_argument("--imgsz", type=int, default=640)
     parser.add_argument("--batch", type=int, default=4)
     parser.add_argument("--iters", type=int, default=100)
-    parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument(
+        "--device", default="cuda" if torch.cuda.is_available() else "cpu"
+    )
     args = parser.parse_args()
 
     # Output to logs/{dataset}/
@@ -178,7 +226,9 @@ def main():
 
         # Baseline stats
         base_params, base_gflops = get_model_stats(baseline, args.imgsz)
-        base_pt_ms = benchmark_pytorch(baseline, args.imgsz, args.batch, args.iters, args.device)
+        base_pt_ms = benchmark_pytorch(
+            baseline, args.imgsz, args.batch, args.iters, args.device
+        )
         base_onnx_ms = benchmark_onnx(baseline, args.imgsz, args.batch, args.iters)
 
         md_rows = [
@@ -193,24 +243,32 @@ def main():
             print(f"  Pruning {pct}%...")
 
             params, gflops = get_model_stats(pruned_path, args.imgsz)
-            pt_ms = benchmark_pytorch(pruned_path, args.imgsz, args.batch, args.iters, args.device)
+            pt_ms = benchmark_pytorch(
+                pruned_path, args.imgsz, args.batch, args.iters, args.device
+            )
             onnx_ms = benchmark_onnx(pruned_path, args.imgsz, args.batch, args.iters)
 
             flops_red = (gflops - base_gflops) / base_gflops * 100 if base_gflops else 0
             pt_speedup = base_pt_ms / pt_ms if pt_ms else 0
-            onnx_speedup = base_onnx_ms / onnx_ms if onnx_ms and not np.isnan(onnx_ms) else 0
+            onnx_speedup = (
+                base_onnx_ms / onnx_ms if onnx_ms and not np.isnan(onnx_ms) else 0
+            )
 
-            results.append({
-                "batch": batch_size,
-                "prune_pct": pct,
-                "params_m": params,
-                "gflops": gflops,
-                "flops_reduction_pct": flops_red,
-                "pytorch_ms": pt_ms,
-                "onnx_ms": onnx_ms,
-                "pytorch_speedup": pt_speedup,
-                "onnx_speedup": onnx_speedup,
-            })
+            results.append(
+                {
+                    "batch": batch_size,
+                    "model_size": extract_model_size(baseline),
+                    "model_family": extract_model_family(baseline),
+                    "prune_pct": pct,
+                    "params_m": params,
+                    "gflops": gflops,
+                    "flops_reduction_pct": flops_red,
+                    "pytorch_ms": pt_ms,
+                    "onnx_ms": onnx_ms,
+                    "pytorch_speedup": pt_speedup,
+                    "onnx_speedup": onnx_speedup,
+                }
+            )
 
             md_rows.append(
                 f"| {pct:.0f}% | {params:.2f} | {flops_red:.0f}% | {pt_speedup:.2f}x | {onnx_speedup:.2f}x |"
