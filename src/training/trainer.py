@@ -14,7 +14,7 @@ from ultralytics.engine.trainer import BaseTrainer
 
 from ultralytics.utils import YAML, LOGGER, RANK, DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS
 from ultralytics.utils.checks import check_yaml
-from ultralytics.utils.torch_utils import de_parallel as unwrap_model
+from ultralytics.utils.torch_utils import unwrap_model
 
 
 def save_model_v2(self: BaseTrainer):
