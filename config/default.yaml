@@ -132,27 +132,21 @@ tracker: botsort.yaml # (str) tracker config file: botsort.yaml or bytetrack.yam
 # Model families and their configurations
 model_families:
   yolo11:
-    sizes: [n, s, m, l, x]
+    sizes: [n, s]
     default_size: n
     description: "YOLOv11 model family"
     size_descriptions:
       n: "nano - Fastest, smallest model"
       s: "small - Balanced speed and accuracy"
-      m: "medium - Good accuracy, moderate speed"
-      l: "large - High accuracy, slower"
-      x: "extra large - Highest accuracy, slowest"
 
 # Default model configuration
-model_size: n              # Options: n, s, m, l, x
+model_size: n              # Options: n, s
 model_family: yolo11        # Model family
 
 # Model size presets for easy switching
 model_presets:
   fast: n                  # For quick testing/development
   balanced: s               # Good balance of speed and accuracy
-  accurate: m              # Higher accuracy for production
-  production: l             # Production-ready accuracy
-  research: x              # Maximum accuracy for research
 
 # Training configuration
 epochs_pre: 2             # Pre-pruning training epochs
